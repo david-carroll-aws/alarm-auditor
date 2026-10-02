@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alarm Auditor</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg: #0f1b2a;
+        --surface: #161e2d;
+        --surface-2: #1b2536;
+        --border: #2c3e50;
+        --divider: #414d5c;
+        --text: #ffffff;
+        --text-muted: #8c9baf;
+        --accent: #42b4ff;
+        --accent-bg: #16324a;
+        --success: #4ade80;
+        --danger: #ff6b6b;
+        --warning: #fbbf24;
+    }
+
+    html, body {
+        background: var(--bg);
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.5;
+    }
+
+    body {
+        padding: 24px;
+        min-height: 100vh;
+    }
+
+    h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px 0; }
+
+    .subtitle {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 24px;
+    }
+
+    .score-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 32px 24px;
+        text-align: center;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .score-value {
+        font-size: 64px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        margin-bottom: 8px;
+    }
+
+    .score-value.good { color: var(--success); }
+    .score-value.warn { color: var(--warning); }
+    .score-value.bad { color: var(--danger); }
+
+    .score-label {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+
+    .score-stats {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        flex-wrap: wrap;
+        padding-top: 20px;
+        border-top: 1px solid var(--divider);
+    }
+
+    .score-stat { text-align: center; }
+
+    .score-stat .num {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text);
+        display: block;
+    }
+
+    .score-stat .lbl {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+    }
+
+    .score-stat.danger .num { color: var(--danger); }
+    .score-stat.success .num { color: var(--success); }
+
+    .actions-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .actions-row .left {
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+
+    .actions-row .right {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    button {
+        background: rgba(66, 180, 255, 0.15);
+        color: var(--accent);
+        border: 1px solid rgba(66, 180, 255, 0.5);
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 0.94rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+        font-family: inherit;
+    }
+
+    button:hover {
+        background: rgba(66, 180, 255, 0.28);
+        border-color: rgba(66, 180, 255, 0.75);
+    }
+
+    button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    button.danger {
+        background: rgba(255, 107, 107, 0.15);
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.5);
+    }
+
+    button.danger:hover {
+        background: rgba(255, 107, 107, 0.28);
+        border-color: rgba(255, 107, 107, 0.75);
+    }
+
+    .findings {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .findings-header {
+        padding: 14px 20px;
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--divider);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .finding {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--divider);
+        transition: background 0.15s;
+    }
+
+    .finding:last-child { border-bottom: none; }
+    .finding:hover { background: var(--surface-2); }
+
+    .finding input[type="checkbox"] {
+        margin-top: 3px;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+        cursor: pointer;
+    }
+
+    .finding-body { flex: 1; min-width: 0; }
+
+    .finding-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text);
+        margin-bottom: 4px;
+        word-break: break-word;
+    }
+
+    .finding-meta {
+        display: flex;
+        gap: 14px;
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .finding-state {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(251, 191, 36, 0.15);
+        color: var(--warning);
+    }
+
+    .finding-reasons {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0 0 0;
+    }
+
+    .finding-reasons li {
+        font-size: 13px;
+        color: var(--text);
+        padding: 4px 0 4px 18px;
+        position: relative;
+        line-height: 1.5;
+    }
+
+    .finding-reasons li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--danger);
+    }
+
+    .finding-cost {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    .loading, .empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .loading .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty .icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+        opacity: 0.6;
+    }
+
+    .empty.success-state .icon {
+        color: var(--success);
+        opacity: 1;
+    }
+
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        z-index: 100;
+    }
+
+    .modal-backdrop.visible { display: flex; }
+
+    .modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        max-width: 560px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--divider);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .modal-header .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        background: rgba(251, 191, 36, 0.15);
+        color: var(--warning);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .modal-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
+
+    .modal-body { padding: 24px; }
+
+    .modal-body p {
+        margin: 0 0 16px 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--text);
+    }
+
+    .modal-body ul {
+        margin: 0 0 16px 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .modal-body ul li {
+        padding: 6px 0 6px 20px;
+        position: relative;
+        font-size: 13px;
+        color: var(--text);
+    }
+
+    .modal-body ul li::before {
+        content: "•";
+        position: absolute;
+        left: 6px;
+        color: var(--accent);
+    }
+
+    .code-block {
+        background: #0b141f;
+        border: 1px solid var(--divider);
+        border-radius: 6px;
+        padding: 14px 16px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        color: var(--accent);
+        margin: 0 0 16px 0;
+        overflow-x: auto;
+        white-space: pre;
+    }
+
+    .callout {
+        background: rgba(251, 191, 36, 0.08);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        border-radius: 8px;
+        padding: 16px;
+        margin: 0 0 16px 0;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .callout strong {
+        color: var(--warning);
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--divider);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+</style>
+</head>
+<body>
+
+<h1>CloudWatch Alarm Auditor</h1>
+<div class="subtitle">
+    Scans CloudWatch for alarms that are silent, orphaned, stale, or duplicated. Read-only — never modifies your account.
+</div>
+
+<div id="content">
+    <div class="loading">
+        <div class="spinner"></div>
+        <div>Scanning CloudWatch alarms…</div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="badge">⚠ Demo mode</span>
+            <h2>No action will be taken</h2>
+        </div>
+        <div class="modal-body">
+            <p>You selected <strong id="modalCount">0</strong> alarm(s) to remediate:</p>
+            <ul id="modalList"></ul>
+
+            <p>In a live environment, the tool would run:</p>
+            <div class="code-block" id="modalCommand">aws cloudwatch delete-alarms \
+  --alarm-names ...</div>
+
+            <p>This would:</p>
+            <ul>
+                <li>Remove the selected alarms from CloudWatch</li>
+                <li>Stop charging $0.10/month per alarm</li>
+                <li>Reduce your monthly bill accordingly</li>
+            </ul>
+
+            <div class="callout">
+                <strong>⚠ No action has been taken.</strong>
+                These demo alarms are required for this scan to return results. If they were deleted,
+                the scan would show 100% healthy with nothing to demonstrate. In a real deployment,
+                the alarms would be deleted here.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const AUDIT_API = "https://niqxdroq1b.execute-api.us-east-1.amazonaws.com/audit";
+
+    let currentFindings = [];
+    let selected = new Set();
+    let scanning = false;
+
+    async function loadAudit() {
+        if (scanning) return;
+        scanning = true;
+
+        const content = document.getElementById("content");
+        content.innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Scanning CloudWatch alarms…</div>
+            </div>
+        `;
+
+        try {
+            const res = await fetch(AUDIT_API);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            renderAudit(data);
+        } catch (err) {
+            content.innerHTML = `
+                <div class="loading">
+                    <div style="color: var(--danger); font-weight: 600;">Failed to load audit</div>
+                    <div style="margin-top: 8px; font-size: 13px;">${err.message}</div>
+                    <div style="margin-top: 20px;">
+                        <button onclick="loadAudit()">Run Scan Again</button>
+                    </div>
+                </div>
+            `;
+        } finally {
+            scanning = false;
+        }
+    }
+
+    function renderAudit(data) {
+        const content = document.getElementById("content");
+        currentFindings = data.findings || [];
+        selected.clear();
+
+        const score = data.score ?? 100;
+        const scoreClass = score >= 90 ? "good" : score >= 70 ? "warn" : "bad";
+
+        let findingsHtml;
+        if (currentFindings.length === 0) {
+            findingsHtml = `
+                <div class="actions-row">
+                    <div class="left"></div>
+                    <div class="right">
+                        <button onclick="loadAudit()">Run Scan Again</button>
+                    </div>
+                </div>
+
+                <div class="findings">
+                    <div class="empty success-state">
+                        <div class="icon">✓</div>
+                        <div style="font-weight: 600; color: var(--text);">All alarms are healthy</div>
+                        <div style="margin-top: 6px; font-size: 13px;">
+                            No silent, orphaned, stale, or duplicate alarms detected.
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            findingsHtml = `
+                <div class="actions-row">
+                    <div class="left">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+                            Select all (${currentFindings.length})
+                        </label>
+                    </div>
+                    <div class="right">
+                        <button onclick="loadAudit()">Run Scan Again</button>
+                        <button id="remediateBtn" class="danger" onclick="openModal()" disabled>
+                            Remediate selected (0)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="findings">
+                    <div class="findings-header">
+                        <span>${currentFindings.length} finding${currentFindings.length === 1 ? '' : 's'}</span>
+                        <span>$${(data.potential_monthly_savings || 0).toFixed(2)}/mo potential savings</span>
+                    </div>
+                    ${currentFindings.map((f, i) => findingHtml(f, i)).join("")}
+                </div>
+            `;
+        }
+
+        content.innerHTML = `
+            <div class="score-card">
+                <div class="score-value ${scoreClass}">${score}%</div>
+                <div class="score-label">Monitoring health</div>
+                <div class="score-stats">
+                    <div class="score-stat success">
+                        <span class="num">${data.total_alarms || 0}</span>
+                        <span class="lbl">Total alarms</span>
+                    </div>
+                    <div class="score-stat ${data.problematic_count > 0 ? 'danger' : 'success'}">
+                        <span class="num">${data.problematic_count || 0}</span>
+                        <span class="lbl">Problematic</span>
+                    </div>
+                    <div class="score-stat">
+                        <span class="num">$${(data.potential_monthly_savings || 0).toFixed(2)}</span>
+                        <span class="lbl">Monthly waste</span>
+                    </div>
+                </div>
+            </div>
+
+            ${findingsHtml}
+        `;
+
+        updateButton();
+    }
+
+    function findingHtml(finding, index) {
+        const reasons = (finding.reasons || [])
+            .map(r => `<li>${escapeHtml(r)}</li>`)
+            .join("");
+
+        return `
+            <div class="finding">
+                <input type="checkbox" data-index="${index}" onchange="toggleSelect(${index}, this)">
+                <div class="finding-body">
+                    <div class="finding-name">${escapeHtml(finding.name || 'Unknown')}</div>
+                    <div class="finding-meta">
+                        <span class="finding-state">${escapeHtml(finding.state || 'UNKNOWN')}</span>
+                        <span>${escapeHtml(finding.metric || '')} · ${escapeHtml(finding.namespace || '')}</span>
+                    </div>
+                    <ul class="finding-reasons">${reasons}</ul>
+                </div>
+                <div class="finding-cost">$${(finding.cost_per_month || 0.10).toFixed(2)}/mo</div>
+            </div>
+        `;
+    }
+
+    function toggleSelect(index, checkbox) {
+        if (checkbox.checked) {
+            selected.add(index);
+        } else {
+            selected.delete(index);
+        }
+        updateButton();
+        updateSelectAllState();
+    }
+
+    function toggleSelectAll(master) {
+        const boxes = document.querySelectorAll('.finding input[type="checkbox"]');
+        boxes.forEach(box => {
+            box.checked = master.checked;
+            const idx = parseInt(box.dataset.index, 10);
+            if (master.checked) {
+                selected.add(idx);
+            } else {
+                selected.delete(idx);
+            }
+        });
+        updateButton();
+    }
+
+    function updateSelectAllState() {
+        const master = document.getElementById("selectAll");
+        if (!master) return;
+        const total = currentFindings.length;
+        master.checked = selected.size === total;
+        master.indeterminate = selected.size > 0 && selected.size < total;
+    }
+
+    function updateButton() {
+        const btn = document.getElementById("remediateBtn");
+        if (!btn) return;
+        btn.textContent = `Remediate selected (${selected.size})`;
+        btn.disabled = selected.size === 0;
+    }
+
+    function openModal() {
+        if (selected.size === 0) return;
+
+        const names = Array.from(selected).map(i => currentFindings[i].name);
+        document.getElementById("modalCount").textContent = names.length;
+
+        document.getElementById("modalList").innerHTML = names
+            .map(n => `<li>${escapeHtml(n)}</li>`)
+            .join("");
+
+        const cmd = "aws cloudwatch delete-alarms \\\n  --alarm-names " + names.join(" ");
+        document.getElementById("modalCommand").textContent = cmd;
+
+        document.getElementById("modalBackdrop").classList.add("visible");
+    }
+
+    function closeModal() {
+        document.getElementById("modalBackdrop").classList.remove("visible");
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[c]));
+    }
+
+    document.getElementById("modalBackdrop").addEventListener("click", (e) => {
+        if (e.target.id === "modalBackdrop") closeModal();
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+    });
+
+    loadAudit();
+</script>
+
+</body>
+</html>
