@@ -1,4 +1,4 @@
-# Alarm Auditor - cost savings
+# AWS Alarm Auditor - cost savings
 CloudWatch alarms can silently add cost to monthly bills if not correctly managed. This AWS tool runs an audit on all alarms in an account and scanning for alarms which are silent, orphaned, stale or duplicates. After discovery admins can take corrective action to remediate issues. This project could be auto set to run weekly/monthly.
 
 A serverless auditor that scans every CloudWatch alarm in an AWS account and flags the ones that are **silent**, **orphaned**, **stale**, or **duplicated** — with a health score and a monthly cost estimate.
